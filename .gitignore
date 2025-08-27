@@ -3,6 +3,7 @@ build/
 .env
 
 mcp_server.json
+mcp.json
 *.js
 # Node-generated files
 node_modules/

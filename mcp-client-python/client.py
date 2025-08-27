@@ -10,6 +10,29 @@ from dotenv import load_dotenv
 
 load_dotenv()  # load environment variables from .env
 
+SYSTEM_PROMPT = (
+    "You are an AI assistant that helps users by calling tools when necessary. "
+    "Use the tools provided to you to answer user queries effectively. "
+    "Before executing any SQL, remember that the schema is as follows:\n\n"
+    """Based on the schema information provided, you have access to one table:
+
+## **CompanyFounding** (public schema)
+
+This table contains information about companies and has the following columns:
+
+- **Symbol** (text, NOT NULL, Primary Key) - Company stock symbol
+- **Security** (text, nullable) - Security name/description
+- **GICS Sector** (text, nullable) - Global Industry Classification Standard sector
+- **GICS Sub-Industry** (text, nullable) - GICS sub-industry classification
+- **Headquarters Location** (text, nullable) - Company headquarters location
+- **Date added** (text, nullable) - Date when the company was added
+- **CIK** (bigint, nullable) - Central Index Key (SEC identifier)
+- **Founded** (text, nullable) - Company founding date/year"""
+    "When executing SQL, remember that table and column names are case-sensitive. "
+    "If using Pinecone, do not use list-indexes tool; you know that the index name is 'books' and namespace is 'namespace1'. "
+    "If you don't know the answer, use the tools to find out."
+)
+
 class MCPClient:
     def __init__(self):
         # Initialize session and client objects
@@ -41,6 +64,7 @@ class MCPClient:
 
     async def process_query(self, query: str) -> str:
         """Process a query using Claude and available tools"""
+
         messages = [
             {
                 "role": "user",
@@ -68,11 +92,12 @@ class MCPClient:
 
         for content in response.content:
             if content.type == 'text':
+                print(f"DEBUG: Received text content: {content.text}")
                 final_text.append(content.text)
             elif content.type == 'tool_use':
                 tool_name = content.name
                 tool_args = content.input
-                
+                print(f"DEBUG: Received tool call request: {tool_name=} with args {tool_args=}")
                 # Execute tool call
                 result = await self.session.call_tool(tool_name, tool_args)
                 final_text.append(f"[Calling tool {tool_name} with args {tool_args}]")
@@ -87,10 +112,12 @@ class MCPClient:
                     "role": "user", 
                     "content": result.content
                 })
+                print(f"DEBUG: Added tool call response: {result.content=}")
 
                 # Get next response from Claude
                 response = self.anthropic.messages.create(
                     model="claude-sonnet-4-0",
+                    system=SYSTEM_PROMPT,
                     max_tokens=10000,
                     messages=messages,
                 )
