@@ -30,6 +30,7 @@ This table contains information about companies and has the following columns:
 - **Founded** (text, nullable) - Company founding date/year"""
     "When executing SQL, remember that table and column names are case-sensitive. "
     "If using Pinecone, do not use list-indexes tool; you know that the index name is 'books' and namespace is 'namespace1'. "
+    "For Semantic Search, use the tool 'search-records' with the query parameter. "
     "If you don't know the answer, use the tools to find out."
 )
 
